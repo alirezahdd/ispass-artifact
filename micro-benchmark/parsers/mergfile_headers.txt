@@ -1,0 +1,1 @@
+iter page_index access_time u_cycles k_cycles u_instr k_intsr mj_fault min_fault flt_rec_idx pc mem_address fault_type nr_readahead valid retry swapcache swapdev cluster_ra vma_ra ra_sleep_count reclaim nr_reclaim reclaim_time ts1 ts2 ts3 ts4 ts5 ts6 ts7 ts8 ts9 total_time
