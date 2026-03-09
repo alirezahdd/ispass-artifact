@@ -5,14 +5,16 @@ This is the main workflow document for reproducing the artifact results.
 ## Overview
 
 The evaluation process consists of:
-1. Build and install custom kernel `6.7.2` with `1.patch`
-2. Install `perf` from the same kernel source
-3. Configure NVMe swap (60G)
-4. Run micro-benchmark
-5. Run GAPBS baseline experiment (`pf-statistics`)
-6. Rebuild kernel with `2.patch` and rerun improved GAPBS experiment
-7. Switch swap to SATA (60G) and run SATA experiment
-8. Populate results and generate figures
+1. Download Linux kernel `6.7.2`
+2. Patch kernel with `1.patch`
+3. Build and install the patched kernel
+4. Install `perf` from the same kernel source
+5. Configure NVMe swap (60G)
+6. Run micro-benchmark and generate figures 3-5
+7. Build GAPBS graphs and place them in `/share/graphs/`
+8. Run baseline GAPBS experiment (`pf-statistics`)
+9. Populate results and generate figures 6-11
+10. Optional: run an additional NVMe-SATA comparison round (time-consuming; not needed for paper plots)
 
 ## Quick Checklist
 
@@ -160,7 +162,28 @@ cd "$ARTIFACT_ROOT/gapbs/experiments/pf-statistics"
 ./run.sh
 ```
 
-## Step 9: Patch Kernel Source with `2.patch` and Install It
+## Step 9: Populate Results and Generate Plots
+
+This step is mandatory to generate all final paper plots and reports.
+
+```bash
+cd "$ARTIFACT_ROOT/gapbs/experiments/results"
+make
+```
+
+This will:
+- Populate the local `results/` directory from experiment outputs
+- Generate the plots/figures from the populated data (figures 6-11)
+
+---
+
+## Optional Extended Evaluation: NVMe-SATA Comparison Round
+
+Run this section only if you want extra NVMe-SATA comparison data.
+
+Warning: this is another full round of runs, is time-consuming, and does not contribute to the plots in the paper.
+
+### Optional Step A: Patch Kernel Source with `2.patch` and Install It
 
 `2.patch` must be applied on top of `1.patch` (cumulative patching).
 Use a clean `linux-6.7.2` source tree and apply both patches in order.
@@ -188,7 +211,7 @@ After login, verify the new kernel is active:
 uname -r
 ```
 
-## Step 10: Run Improved GAPBS Experiment (`pf-statistics-improved`)
+### Optional Step B: Run Improved GAPBS Experiment (`pf-statistics-improved`)
 
 As in Step 8, the run script uses cgroups to cap each algorithm-graph pair at
 30\% of its memory footprint to enforce page faults and swapping while running
@@ -199,7 +222,7 @@ cd "$ARTIFACT_ROOT/gapbs/experiments/pf-statistics-improved"
 ./run.sh
 ```
 
-## Step 11: Configure Swap Space (60G on SATA SSD) and Disable NVMe Swap
+### Optional Step C: Configure Swap Space (60G on SATA SSD) and Disable NVMe Swap
 
 First disable currently active NVMe swap:
 
@@ -216,7 +239,7 @@ sudo ./make_swap.sh
 swapon --show
 ```
 
-## Step 12: Run SATA GAPBS Experiment (`pf-statistics-SATA`)
+### Optional Step D: Run SATA GAPBS Experiment (`pf-statistics-SATA`)
 
 ```bash
 cd "$ARTIFACT_ROOT/gapbs/experiments/pf-statistics-SATA"
@@ -225,17 +248,7 @@ cd "$ARTIFACT_ROOT/gapbs/experiments/pf-statistics-SATA"
 
 Now the experiment results are ready.
 
-## Step 13: Populate Results and Generate Plots
-
-```bash
-cd "$ARTIFACT_ROOT/gapbs/experiments/results"
-make
-```
-
-This will:
-- Populate the local `results/` directory from experiment outputs
-- Generate the plots/figures from the populated data (figures 6-11)
-- Generate a report for NVMe SATA comparison
+After completing Optional Steps A-D, rerun Step 9 to regenerate outputs including NVMe-SATA comparison artifacts.
 ---
 
 ## Notes
