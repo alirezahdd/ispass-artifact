@@ -124,6 +124,7 @@ This step compiles the micro-benchmarks, runs them, and generates their correspo
 ```bash
 cd "$ARTIFACT_ROOT/micro-benchmark"
 make
+make run
 ```
 
 ## Step 7: Build GAPBS Graphs and Place Them in `/share/graphs/`
@@ -234,7 +235,7 @@ make
 This will:
 - Populate the local `results/` directory from experiment outputs
 - Generate the plots/figures from the populated data (figures 6-11)
-
+- Generate a report for NVMe SATA comparison
 ---
 
 ## Notes
