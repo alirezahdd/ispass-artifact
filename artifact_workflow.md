@@ -98,6 +98,30 @@ stat -fc %T /sys/fs/cgroup
 # Expected: tmpfs (if you see cgroup2fs, v2 is still active)
 ```
 
+### If you do not have direct access to the machine (e.g. SSH connection)
+
+(Skip this part if you have booted to the kernel that you desire)
+If working on a headless (remote SSH) setting, you may want to change which kernel version the bootloader should boot from.
+You can use the following information if working on a Ubuntu (probably Debian and other distributions that use `grub` too).
+[This Stack-overflow answer](https://unix.stackexchange.com/a/327686) can be helpful too.
+
+1. Open `/boot/grub/grub.cfg`. Find the `menuentry` for the new kernel that you built and installed. Note that the `menuentry` may be part of a `submenu (Advanced options for ....)`.
+2. Find the `$menuentry_id_option` string in the `menuentry` line, and copy the next string for both the `submenu` (if applicable) and the `menuentry` for the built kernel.
+3. Open `/etc/default/grub`. Set the `GRUB_DEFAULT` variable to the following format.
+
+```bash
+# if the submenu string was for example: gnulinux-advanced-deadbeef-cafe-0123-4567-89ABCDEF
+# and the menustring was: gnulinux-6.8.0-101-generic-advanced-deadbeef-cafe-0123-4567-89ABCDEF
+# (Note that the values after `advanced` are machine specific and will be different)
+# GRUB_DEFAULT="%s>%s"% submenustring, menustring
+GRUB_DEFAULT="gnulinux-advanced-deadbeef-cafe-0123-4567-89ABCDEF>gnulinux-6.8.0-101-generic-advanced-deadbeef-cafe-0123-4567-89ABCDEF"
+# Note the '>' between the submenustring and the menustring.
+# If your menuentry is not inside a submenu, then skip the submenustring and '>'.
+```
+4. `sudo update-grub`
+5. Verify in the `/boot/grub/grub.cfg` that the string after `set default` is the submenu-menuentry that you set in the `/etc/default/grub`.
+6. `sudo reboot` and check again if the kernel you want has booted.
+
 ## Step 4: Install `perf` from the Same Kernel Source
 
 Make sure `perf` is compiled and installed correctly. If you see any build warnings, address them before continuing.
