@@ -136,6 +136,7 @@ perf --version
 ## Step 5: Configure Swap Space (60G on NVMe SSD)
 
 Use the provided script and select your NVMe disk (for example `/dev/nvme0n1`) when prompted.
+Make sure to follow the instruction from the `make_swap.sh` script to add the swap device information into the `/etc/fstab`.
 
 ```bash
 cd "$ARTIFACT_ROOT"
