@@ -3,6 +3,9 @@ SHELL := /usr/bin/env bash
 
 CXX := g++
 PYTHON := python3
+VENV_DIR := .venv
+VENV_PYTHON := $(VENV_DIR)/bin/python
+VENV_PIP := $(VENV_DIR)/bin/pip
 PIP := $(PYTHON) -m pip
 PLOT_SCRIPT := plot_access_time.py
 TIMESTAMP_BREAKDOWN_SCRIPT := plot_timestamp_breakdown.py
@@ -34,30 +37,31 @@ MEM_LIMIT_BYTES := $(shell echo $$(( $(MEM_LIMIT_MB) * 1024 * 1024 )))
 
 all: $(BINARIES)
 
-deps:
-	@echo "Checking system and Python dependencies..."
-	@if ! command -v $(CXX) >/dev/null 2>&1; then \
-		echo "Installing g++ and build tools..."; \
-		sudo apt-get update; \
-		sudo apt-get install -y build-essential; \
-	fi
-	@if ! command -v $(PYTHON) >/dev/null 2>&1; then \
-		echo "Installing python3 and python3-pip..."; \
-		sudo apt-get update; \
-		sudo apt-get install -y python3 python3-pip; \
-	fi
-	@if ! $(PIP) --version >/dev/null 2>&1; then \
-		echo "Installing python3-pip..."; \
-		sudo apt-get update; \
-		sudo apt-get install -y python3-pip; \
-	fi
-	@$(PIP) install --user -r "$(PYTHON_REQUIREMENTS)"
-	@if ! command -v cgcreate >/dev/null 2>&1 || ! command -v cgset >/dev/null 2>&1 || ! command -v cgexec >/dev/null 2>&1; then \
-		echo "Installing libcgroup-tools..."; \
-		sudo apt-get update; \
-		sudo apt-get install -y libcgroup-tools; \
-	fi
-	@echo "Dependency setup complete."
+venv:
+    @if ! command -v $(PYTHON) >/dev/null 2>&1; then \
+        echo "Installing python3 and python3-venv..."; \
+        sudo apt-get update; \
+        sudo apt-get install -y python3 python3-venv python3-pip; \
+    fi
+    @if [[ ! -x "$(VENV_PYTHON)" ]]; then \
+        echo "Creating virtual environment in $(VENV_DIR)..."; \
+        $(PYTHON) -m venv "$(VENV_DIR)"; \
+    fi
+    @$(VENV_PIP) install -r "$(PYTHON_REQUIREMENTS)"
+
+deps: venv
+    @echo "Checking system dependencies..."
+    @if ! command -v $(CXX) >/dev/null 2>&1; then \
+        echo "Installing g++ and build tools..."; \
+        sudo apt-get update; \
+        sudo apt-get install -y build-essential; \
+    fi
+    @if ! command -v cgcreate >/dev/null 2>&1 || ! command -v cgset >/dev/null 2>&1 || ! command -v cgexec >/dev/null 2>&1; then \
+        echo "Installing libcgroup-tools..."; \
+        sudo apt-get update; \
+        sudo apt-get install -y libcgroup-tools; \
+    fi
+    @echo "Dependency setup complete."
 
 run: deps all run-benchmarks parse plot
 

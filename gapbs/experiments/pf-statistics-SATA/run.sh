@@ -183,17 +183,17 @@ function set_swap_partition_count() {
 	# Find all swap partitions of size 60G, filtered by SWAP_TYPE
 	if [ "$SWAP_TYPE" == "SATA" ]; then
 		# SATA devices start with 'sd' (e.g. sdb1, sdc1)
-		readarray -t blocks < <(lsblk | grep '60G' | awk -F '└─| ' '{print $2}' | grep '^sd')
+		readarray -t blocks < <(lsblk | grep '60G' | awk -F '[├└]─| ' '{print $2}' | grep '^sd')
 	else
 		# NVME devices start with 'nvme' (e.g. nvme0n1p1)
-		readarray -t blocks < <(lsblk | grep '60G' | awk -F '└─| ' '{print $2}' | grep '^nvme')
+		readarray -t blocks < <(lsblk | grep '60G' | awk -F '[├└]─| ' '{print $2}' | grep '^nvme')
 	fi
 	for i in "${!blocks[@]}"; do
 		blocks[i]="/dev/${blocks[$i]}"
 	done
 
 	# Find all currently active swap devices
-	readarray -t swap_devices < <(lsblk | grep '\[SWAP\]' | awk -F '└─| ' '{print $2}')
+	readarray -t swap_devices < <(lsblk | grep '\[SWAP\]' | awk -F '[├└]─| ' '{print $2}')
 	for i in "${!swap_devices[@]}"; do
 		swap_devices[i]="/dev/${swap_devices[$i]}"
 	done

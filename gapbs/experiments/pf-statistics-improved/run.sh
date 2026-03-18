@@ -181,13 +181,13 @@ function set_swap_partition_count() {
 	local swap_partitions=$1
 
 	# Find all swap partitions of size 60G
-	readarray -t blocks < <(lsblk | grep '60G' | awk -F '└─| ' '{print $2}')
+	readarray -t blocks < <(lsblk | grep '60G' | awk -F '[├└]─| ' '{print $2}')
 	for i in "${!blocks[@]}"; do
 		blocks[i]="/dev/${blocks[$i]}"
 	done
 
 	# Find all currently active swap devices
-	readarray -t swap_devices < <(lsblk | grep '\[SWAP\]' | awk -F '└─| ' '{print $2}')
+	readarray -t swap_devices < <(lsblk | grep '\[SWAP\]' | awk -F '[├└]─| ' '{print $2}')
 	for i in "${!swap_devices[@]}"; do
 		swap_devices[i]="/dev/${swap_devices[$i]}"
 	done
