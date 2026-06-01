@@ -4,8 +4,8 @@ SHELL := /usr/bin/env bash
 CXX := g++
 PYTHON := python3
 VENV_DIR := .venv
-VENV_PYTHON := $(VENV_DIR)/bin/python
-VENV_PIP := $(VENV_DIR)/bin/pip
+VENV_PYTHON := $(abspath $(VENV_DIR)/bin/python)
+VENV_PIP := $(abspath $(VENV_DIR)/bin/pip)
 PIP := $(PYTHON) -m pip
 PLOT_SCRIPT := plot_access_time.py
 TIMESTAMP_BREAKDOWN_SCRIPT := plot_timestamp_breakdown.py
@@ -25,6 +25,7 @@ SLEEP_SECONDS ?= 2
 PLOT_METRIC ?= access_time
 PLOT_CAP_PERCENTILE ?= 99
 PLOT_OUTPUT ?= ../figures/fig_3.pdf
+MPLBACKEND ?= Agg
 
 CXXFLAGS := -g -no-pie -std=c++11 -O1 -Wall
 
@@ -33,37 +34,40 @@ BENCHMARKS := seq rnd seq_8page
 BINARIES := $(addprefix $(BIN_DIR)/,$(BENCHMARKS))
 MEM_LIMIT_BYTES := $(shell echo $$(( $(MEM_LIMIT_MB) * 1024 * 1024 )))
 
-.PHONY: all deps run setup-cgroup run-benchmarks parse plot clean dirs
+.PHONY: all deps run from-raw setup-cgroup run-benchmarks parse plot clean dirs
 
 all: $(BINARIES)
 
 venv:
-    @if ! command -v $(PYTHON) >/dev/null 2>&1; then \
-        echo "Installing python3 and python3-venv..."; \
-        sudo apt-get update; \
-        sudo apt-get install -y python3 python3-venv python3-pip; \
-    fi
-    @if [[ ! -x "$(VENV_PYTHON)" ]]; then \
-        echo "Creating virtual environment in $(VENV_DIR)..."; \
-        $(PYTHON) -m venv "$(VENV_DIR)"; \
-    fi
-    @$(VENV_PIP) install -r "$(PYTHON_REQUIREMENTS)"
+	@if ! command -v $(PYTHON) >/dev/null 2>&1; then \
+		echo "Installing python3 and python3-venv..."; \
+		sudo apt-get update; \
+		sudo apt-get install -y python3 python3-venv python3-pip; \
+	fi
+	@if [[ ! -x "$(VENV_PYTHON)" ]]; then \
+		echo "Creating virtual environment in $(VENV_DIR)..."; \
+		$(PYTHON) -m venv "$(VENV_DIR)"; \
+	fi
+	@$(VENV_PIP) install -r "$(PYTHON_REQUIREMENTS)"
 
 deps: venv
-    @echo "Checking system dependencies..."
-    @if ! command -v $(CXX) >/dev/null 2>&1; then \
-        echo "Installing g++ and build tools..."; \
-        sudo apt-get update; \
-        sudo apt-get install -y build-essential; \
-    fi
-    @if ! command -v cgcreate >/dev/null 2>&1 || ! command -v cgset >/dev/null 2>&1 || ! command -v cgexec >/dev/null 2>&1; then \
-        echo "Installing libcgroup-tools..."; \
-        sudo apt-get update; \
-        sudo apt-get install -y libcgroup-tools; \
-    fi
-    @echo "Dependency setup complete."
+	@echo "Checking system dependencies..."
+	@if ! command -v $(CXX) >/dev/null 2>&1; then \
+		echo "Installing g++ and build tools..."; \
+		sudo apt-get update; \
+		sudo apt-get install -y build-essential; \
+	fi
+	@if ! command -v cgcreate >/dev/null 2>&1 || ! command -v cgset >/dev/null 2>&1 || ! command -v cgexec >/dev/null 2>&1; then \
+		echo "Installing libcgroup-tools..."; \
+		sudo apt-get update; \
+		sudo apt-get install -y libcgroup-tools; \
+	fi
+	@echo "Dependency setup complete."
 
 run: deps all run-benchmarks parse plot
+
+from-raw: venv parse plot
+	@echo "Processed existing raw data from $(RESULTS_RAW_DIR)."
 
 dirs:
 	@mkdir -p "$(BIN_DIR)"
@@ -108,19 +112,19 @@ run-benchmarks: setup-cgroup
 parse:
 	@mkdir -p "$(RESULTS_DIR)"
 	@echo "Parsing and merging results..."
-	cd parsers && $(PYTHON) parse_and_merge.py seq
-	cd parsers && $(PYTHON) parse_and_merge.py rnd
-	cd parsers && $(PYTHON) parse_and_merge.py seq_8page
+	cd parsers && $(VENV_PYTHON) parse_and_merge.py seq
+	cd parsers && $(VENV_PYTHON) parse_and_merge.py rnd
+	cd parsers && $(VENV_PYTHON) parse_and_merge.py seq_8page
 
 plot:
 	@mkdir -p "$(FIGURES_DIR)"
 	@echo "Generating plots..."
-	cd plotters && $(PYTHON) "$(PLOT_SCRIPT)" \
+	cd plotters && MPLBACKEND="$(MPLBACKEND)" $(VENV_PYTHON) "$(PLOT_SCRIPT)" \
 		--metric "$(PLOT_METRIC)" \
 		--cap-percentile "$(PLOT_CAP_PERCENTILE)" \
 		--output "$(PLOT_OUTPUT)"
-	cd plotters && $(PYTHON) "$(TIMESTAMP_BREAKDOWN_SCRIPT)"
-	cd plotters && $(PYTHON) "$(TIMESTAMP_COMPARISON_SCRIPT)"
+	cd plotters && MPLBACKEND="$(MPLBACKEND)" $(VENV_PYTHON) "$(TIMESTAMP_BREAKDOWN_SCRIPT)"
+	cd plotters && MPLBACKEND="$(MPLBACKEND)" $(VENV_PYTHON) "$(TIMESTAMP_COMPARISON_SCRIPT)"
 	@echo "All done!"
 
 clean:

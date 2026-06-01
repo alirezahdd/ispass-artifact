@@ -50,7 +50,7 @@ def read_csv_data(filename):
 
 def plot_access_times():
     """
-    Plot access times for seq, seq_8page, and rnd benchmarks.
+    Plot access times for seq and rnd benchmarks.
     X-axis: iteration number
     Y-axis: access time
     """
@@ -60,7 +60,6 @@ def plot_access_times():
     
     try:
         seq_iter, seq_time, seq_mj, seq_mn, seq_min_min, seq_max_min, seq_min_maj, seq_max_maj_no_rec, seq_min_rec = read_csv_data(f"{results_dir}/seq_merged.csv")
-        seq8_iter, seq8_time, seq8_mj, seq8_mn, seq8_min_min, seq8_max_min, seq8_min_maj, seq8_max_maj_no_rec, seq8_min_rec = read_csv_data(f"{results_dir}/seq_8page_merged.csv")
         rnd_iter, rnd_time, rnd_mj, rnd_mn, rnd_min_min, rnd_max_min, rnd_min_maj, rnd_max_maj_no_rec, rnd_min_rec = read_csv_data(f"{results_dir}/rnd_merged.csv")
     except FileNotFoundError as e:
         print(f"Error: Could not find one or more CSV files: {e}")
@@ -78,13 +77,6 @@ def plot_access_times():
     print(f"  Max major fault time (no reclaim): {seq_max_maj_no_rec:.2f} μs")
     print(f"  Min reclaim time: {seq_min_rec:.2f} μs" if seq_min_rec else "  Min reclaim time: N/A")
     
-    print(f"\nseq_8page:")
-    print(f"  Min minor fault time: {seq8_min_min:.2f} μs" if seq8_min_min else "  Min minor fault time: N/A")
-    print(f"  Max minor fault time: {seq8_max_min:.2f} μs")
-    print(f"  Min major fault time: {seq8_min_maj:.2f} μs" if seq8_min_maj else "  Min major fault time: N/A")
-    print(f"  Max major fault time (no reclaim): {seq8_max_maj_no_rec:.2f} μs")
-    print(f"  Min reclaim time: {seq8_min_rec:.2f} μs" if seq8_min_rec else "  Min reclaim time: N/A")
-    
     print(f"\nrnd:")
     print(f"  Min minor fault time: {rnd_min_min:.2f} μs" if rnd_min_min else "  Min minor fault time: N/A")
     print(f"  Max minor fault time: {rnd_max_min:.2f} μs")
@@ -93,11 +85,11 @@ def plot_access_times():
     print(f"  Min reclaim time: {rnd_min_rec:.2f} μs" if rnd_min_rec else "  Min reclaim time: N/A")
     print()
 
-    min_minor=min(filter(None, [seq_min_min, seq8_min_min, rnd_min_min]))
-    max_minor=max([seq_max_min, seq8_max_min, rnd_max_min])
-    min_major=min(filter(None, [seq_min_maj, seq8_min_maj, rnd_min_maj]))
-    max_major=max([seq_max_maj_no_rec, seq8_max_maj_no_rec, rnd_max_maj_no_rec])
-    min_reclaim=min(filter(None, [seq_min_rec, seq8_min_rec, rnd_min_rec]))
+    min_minor = min(filter(None, [seq_min_min, rnd_min_min]))
+    max_minor = max([seq_max_min, rnd_max_min])
+    min_major = min(filter(None, [seq_min_maj, rnd_min_maj]))
+    max_major = max([seq_max_maj_no_rec, rnd_max_maj_no_rec])
+    min_reclaim = min(filter(None, [seq_min_rec, rnd_min_rec]))
     
     # Create the plot (single column size for two-column paper: 3.5" width)
     plt.figure(figsize=(3.5, 2.8))
@@ -105,26 +97,15 @@ def plot_access_times():
     # Plot seq
     plt.plot(seq_iter, seq_time, 
              marker='o', linestyle='', markersize=3, 
-            #  label=f'seq (MJ:{seq_mj}, MN:{seq_mn})', 
              label=f'seq', 
              color='#2E86AB', zorder=1, markeredgewidth=0)  # Blue
     
     # Plot rnd
     plt.plot(rnd_iter, rnd_time, 
              marker='^', linestyle='', markersize=3, 
-            #  label=f'rnd (MJ:{rnd_mj}, MN:{rnd_mn})', 
              label=f'rnd', 
              color='#A23B72', zorder=2, markeredgewidth=0)  # Purple
     
-    # Plot seq_8page with iteration multiplied by 8 (in front with more visible color)
-    seq8_iter_scaled = [i * 8 for i in seq8_iter]
-    plt.plot(seq8_iter_scaled, seq8_time, 
-             marker='s', linestyle='', markersize=2, 
-            #  label=f'seq_8page (MJ:{seq8_mj}, MN:{seq8_mn})', 
-             label=f'seq_8page', 
-             color='#F18F01', zorder=3, markeredgewidth=0)  # Orange
-    
-
     plt.axhspan(min_minor, max_minor, alpha=0.1, color='green', zorder=0, edgecolor='none')
     plt.axhspan(min_major, max_major, alpha=0.1, color='orange', zorder=0, edgecolor='none')
     plt.axhspan(min_reclaim, plt.ylim()[1], alpha=0.1, color='red', zorder=0, edgecolor='none')
@@ -141,13 +122,13 @@ def plot_access_times():
     plt.xlabel('Iteration Number', fontsize=9)
     plt.ylabel('Fault Handling Time (μs)', fontsize=9)
     plt.yscale('log')
-    plt.legend(fontsize=7, loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=3, frameon=True)
+    plt.legend(fontsize=7, loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=2, frameon=True)
     plt.grid(True, alpha=0.3)
     plt.tick_params(labelsize=8)
     plt.tight_layout()
     
     # Save the plot
-    output_pdf = "../figures/fig_3.pdf"
+    output_pdf = "../figures/access_time_comparison_no_seq8.pdf"
     plt.savefig(output_pdf, bbox_inches='tight')
     print(f"Plot saved to {output_pdf}")
     

@@ -3,6 +3,9 @@ import csv
 import matplotlib.pyplot as plt
 import sys
 
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
+
 def read_csv_data(filename):
     """Read CSV file and return iterations, kernel instructions, major and minor faults count."""
     iterations = []

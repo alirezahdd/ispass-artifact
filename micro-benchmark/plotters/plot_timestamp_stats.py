@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
+
 def read_and_categorize_timestamps(filename):
     """Read CSV file and categorize timestamps by fault type."""
     minor_ts = {f'ts{i}': [] for i in [1, 2, 3, 4, 5, 6, 7, 8, 9]}

@@ -1,50 +1,51 @@
 #!/usr/bin/env python3
-import argparse
 import csv
-from pathlib import Path
-
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
-TS_KEYS = [f"ts{i}" for i in [2, 3, 4, 5, 6, 7, 8, 9]]
-
-
-def parse_int(row, key):
-    try:
-        return int(row[key])
-    except (KeyError, ValueError):
-        return 0
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
 
 def read_and_categorize_timestamps(filename):
     """Read CSV file and categorize timestamps by fault type."""
-    minor_ts = {k: [] for k in TS_KEYS}
-    major_no_reclaim_ts = {k: [] for k in TS_KEYS}
-    major_with_reclaim_ts = {k: [] for k in TS_KEYS}
-
-    with open(filename, "r") as f:
+    minor_ts = {f'ts{i}': [] for i in [2, 3, 4, 5, 6, 7, 8, 9]}
+    major_no_reclaim_ts = {f'ts{i}': [] for i in [2, 3, 4, 5, 6, 7, 8, 9]}
+    major_with_reclaim_ts = {f'ts{i}': [] for i in [2, 3, 4, 5, 6, 7, 8, 9]}
+    
+    with open(filename, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            is_major = parse_int(row, "mj_fault") > 0
-            is_minor = parse_int(row, "min_fault") > 0 and not is_major
-            has_reclaim = parse_int(row, "reclaim") > 0
-
+            is_major = int(row['mj_fault']) == 1
+            is_minor = int(row['min_fault']) == 1
+            has_reclaim = int(row['reclaim']) == 1
+            
+            # Get timestamp values (in nanoseconds, convert to microseconds)
+            # For minor faults: use ts6 as ts4, and zero for ts6
             if is_minor:
                 ts_values = {
-                    "ts2": parse_int(row, "ts2") / 1000.0,
-                    "ts3": parse_int(row, "ts3") / 1000.0,
-                    "ts4": parse_int(row, "ts6") / 1000.0,
-                    "ts5": parse_int(row, "ts5") / 1000.0,
-                    "ts6": 0.0,
-                    "ts7": parse_int(row, "ts7") / 1000.0,
-                    "ts8": parse_int(row, "ts8") / 1000.0,
-                    "ts9": parse_int(row, "ts9") / 1000.0,
+                    'ts2': int(row['ts2']) / 1000.0,
+                    'ts3': int(row['ts3']) / 1000.0,
+                    'ts4': int(row['ts6']) / 1000.0,  # Use ts6 as ts4 for minor faults
+                    'ts5': int(row['ts5']) / 1000.0,
+                    'ts6': 0.0,  # Zero for ts6 in minor faults
+                    'ts7': int(row['ts7']) / 1000.0,
+                    'ts8': int(row['ts8']) / 1000.0,
+                    'ts9': int(row['ts9']) / 1000.0,
                 }
             else:
-                ts_values = {k: parse_int(row, k) / 1000.0 for k in TS_KEYS}
-
+                ts_values = {
+                    'ts2': int(row['ts2']) / 1000.0,
+                    'ts3': int(row['ts3']) / 1000.0,
+                    'ts4': int(row['ts4']) / 1000.0,
+                    'ts5': int(row['ts5']) / 1000.0,
+                    'ts6': int(row['ts6']) / 1000.0,
+                    'ts7': int(row['ts7']) / 1000.0,
+                    'ts8': int(row['ts8']) / 1000.0,
+                    'ts9': int(row['ts9']) / 1000.0,
+                }
+            
+            # Categorize and store non-negative values
             if is_minor:
                 for ts_name, val in ts_values.items():
                     if val > 0:
@@ -57,7 +58,7 @@ def read_and_categorize_timestamps(filename):
                 for ts_name, val in ts_values.items():
                     if val > 0:
                         major_no_reclaim_ts[ts_name].append(val)
-
+    
     return minor_ts, major_no_reclaim_ts, major_with_reclaim_ts
 
 def compute_stats(ts_dict):
@@ -75,20 +76,20 @@ def compute_stats(ts_dict):
             stats[ts_name] = {'min': 0, 'max': 0, 'avg': 0, 'count': 0}
     return stats
 
-def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/timestamp_comparison.pdf"):
+def plot_timestamp_comparison():
     """
     Plot timestamp statistics with two subplots:
     1. Combined ts2,ts3,ts6,ts8,ts9 (similar across benchmarks)
     2. ts5,ts7 comparison (differs across benchmarks)
     """
     
-    results_dir = Path(results_dir)
+    results_dir = "../results"
     benchmarks = [
-        ("seq", results_dir / "seq_merged.csv"),
-        ("rnd", results_dir / "rnd_merged.csv"),
-        ("seq_8page", results_dir / "seq_8page_merged.csv"),
+        ('seq', f"{results_dir}/seq_merged.csv"),
+        ('rnd', f"{results_dir}/rnd_merged.csv"),
+        ('seq_8page', f"{results_dir}/seq_8page_merged.csv")
     ]
-
+    
     # Read all data
     all_data = {}
     for bench_name, csv_file in benchmarks:
@@ -102,12 +103,9 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
         except Exception as e:
             print(f"Error reading {csv_file}: {e}")
             continue
-
-    if not all_data:
-        raise RuntimeError("No valid input data found for timestamp comparison plot.")
     
     # Create figure with 2 subplots
-    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.5, 4))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.5, 4))
     # Subplot 1: Combined ts2,ts3,ts4,ts6,ts8,ts9 (use averaged data from all benchmarks)
     common_ts = ['ts2', 'ts3', 'ts4', 'ts6', 'ts8', 'ts9']
     x_pos1 = np.arange(len(common_ts))
@@ -118,7 +116,7 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
     combined_no_rec = {ts: [] for ts in common_ts}
     combined_with_rec = {ts: [] for ts in common_ts}
     
-    for bench_name in [name for name, _ in benchmarks]:
+    for bench_name in ['seq', 'rnd', 'seq_8page']:
         if bench_name in all_data:
             for ts in common_ts:
                 if all_data[bench_name]['minor'][ts]['avg'] > 0:
@@ -141,21 +139,21 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
     with_rec_max = [np.max(combined_with_rec[ts]) if combined_with_rec[ts] else 0 for ts in common_ts]
     
     ax1.bar(x_pos1 - width, minor_avg, width, label='Minor',
-           color='#2E86AB', edgecolor='none')
+           color='#2E86AB', edgecolor='black',linewidth=0.4)
     ax1.errorbar(x_pos1 - width, minor_avg,
                 yerr=[np.array(minor_avg) - np.array(minor_min),
                       np.array(minor_max) - np.array(minor_avg)],
                 fmt='none', ecolor='black', capsize=2, linewidth=0.8, alpha=0.5)
     
     ax1.bar(x_pos1, no_rec_avg, width, label='Major (no reclaim)',
-           color='#A23B72', edgecolor='none')
+           color='#A23B72', edgecolor='black',linewidth=0.4)
     ax1.errorbar(x_pos1, no_rec_avg,
                 yerr=[np.array(no_rec_avg) - np.array(no_rec_min),
                       np.array(no_rec_max) - np.array(no_rec_avg)],
                 fmt='none', ecolor='black', capsize=2, linewidth=0.8, alpha=0.5)
     
     ax1.bar(x_pos1 + width, with_rec_avg, width, label='Major (with reclaim)',
-           color='#F18F01', edgecolor='none')
+           color='#F18F01', edgecolor='black',linewidth=0.4)
     ax1.errorbar(x_pos1 + width, with_rec_avg,
                 yerr=[np.array(with_rec_avg) - np.array(with_rec_min),
                       np.array(with_rec_max) - np.array(with_rec_avg)],
@@ -175,7 +173,7 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
     
     ax1.set_ylabel('Time (μs)', fontsize=8)
     # ax1.set_xlabel('Timestamp', fontsize=8)
-    ax1.set_title('Stage-wise Page Fault Handling \nLatency Across Microbenchmarks', fontsize=9, weight='bold')
+    ax1.set_title('Stage-wise Page Fault Handling \nLatency Across Microbenchmarks', fontsize=7)
     ax1.legend(fontsize=7, loc='best', frameon=True)
     ax1.grid(True, alpha=0.3, axis='y')
     ax1.tick_params(labelsize=7)
@@ -217,7 +215,7 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
             offset = (i * (3 + bench_spacing) + j - 4.5) * width2
             
             ax2.bar(x_pos2 + offset, avg_vals, width2,
-                   color=fault_colors[fault_type], edgecolor='none', alpha=0.9)
+                   color=fault_colors[fault_type], edgecolor='black', linewidth=0.4, alpha=0.9)
             ax2.errorbar(x_pos2 + offset, avg_vals,
                         yerr=[np.array(avg_vals) - np.array(min_vals),
                               np.array(max_vals) - np.array(avg_vals)],
@@ -233,7 +231,7 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
     # ax2.set_xlabel('Timestamp', fontsize=8)
     ax2.grid(True, alpha=0.3, axis='y')
     ax2.tick_params(labelsize=7, pad=10)
-    ax2.set_title('Latency Distributions of Stages S4 and S6', fontsize=9, weight='bold')
+    ax2.set_title('Latency Distributions of Stages S4 and S6', fontsize=7)
     ax2.set_yscale('log')
     ax2.set_xticks(x_pos2)
     ax2.set_xticklabels(diff_ts_meanings, fontsize=7, fontweight='bold')
@@ -260,18 +258,9 @@ def plot_timestamp_comparison(results_dir="../results", output_pdf="../figures/t
     plt.tight_layout()
     
     # Save the plot
-    output_path = Path(output_pdf)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path, bbox_inches='tight')
+    output_pdf = "../figures/fig_4.pdf"
+    plt.savefig(output_pdf, bbox_inches='tight')
     print(f"Plot saved to {output_pdf}")
 
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Generate timestamp comparison bar charts")
-    parser.add_argument("--results-dir", default="../results")
-    parser.add_argument("--output", default="../figures/fig_4.pdf")
-    return parser.parse_args()
-
 if __name__ == "__main__":
-    args = parse_args()
-    plot_timestamp_comparison(args.results_dir, args.output)
+    plot_timestamp_comparison()
