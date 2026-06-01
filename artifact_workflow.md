@@ -151,7 +151,9 @@ This step compiles the micro-benchmarks, runs them, and generates their correspo
 ```bash
 cd "$ARTIFACT_ROOT/micro-benchmark"
 make
-make run
+# either of the following
+make run 
+make from-raw # if you want to just plot the figures without rerunning the experiments
 ```
 
 ## Step 7: Build GAPBS Graphs and Place Them in `/share/graphs/`
